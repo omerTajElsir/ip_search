@@ -1,0 +1,10 @@
+{
+  "emptyTitle":"Wonna know your IP?",
+  "emptyDesc":"It's easy, just click the button bellow and find out",
+  "search":"Search",
+  "errorTitle":"Something went wrong!",
+  "errorDesc":"Please try again",
+  "refresh":"refresh",
+  "yourIP":"Your ip is : ",
+  "clear":"clear"
+}
