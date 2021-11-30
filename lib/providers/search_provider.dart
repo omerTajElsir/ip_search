@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart';
-import 'package:ip_search/repositories/ip_api_client.dart';
 
+import '../data/livedata/live_data.dart';
+import '../data/livedata/ui_state.dart';
+import '../data/repositories/ip_api_client.dart';
 import '../models/data_model.dart';
 
 
@@ -17,22 +19,29 @@ class SearchProvider with ChangeNotifier {
 
   String? imageAsset;
 
+  LiveData<UIState<DataModel>> _ipLiveData = LiveData<UIState<DataModel>>();
+
+
+  LiveData<UIState<DataModel>> getIpLiveData (){
+    return this._ipLiveData;
+  }
+
+  init(){
+    _ipLiveData.setValue(Initial());
+  }
+
   Future<DataModel> getIp() async {
-    isSearching = true;
+    _ipLiveData.setValue(IsLoading());
     notifyListeners();
     try {
       final data = await apiClient.fetchIP();
-      response = data;
-      isSearching = false;
-      error = null;
+      _ipLiveData.setValue(Success(data));
 
       notifyListeners();
 
       return data;
     } catch (e) {
-      error = e.toString();
-      response = null;
-      isSearching = false;
+      _ipLiveData.setValue(Failure(e.toString()));
 
       notifyListeners();
 
@@ -42,8 +51,7 @@ class SearchProvider with ChangeNotifier {
 
 
   void clearSearch() {
-    error = null;
-    response = null;
+    _ipLiveData.setValue(Initial());
 
     notifyListeners();
   }

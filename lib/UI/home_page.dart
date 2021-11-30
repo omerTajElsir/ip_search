@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ip_search/models/data_model.dart';
 import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
 import 'package:ip_search/UI/results/empty_page.dart';
@@ -6,7 +7,7 @@ import 'package:ip_search/UI/results/error_page.dart';
 import 'package:ip_search/UI/results/result_page.dart';
 import 'package:ip_search/providers/search_provider.dart';
 import 'package:easy_localization/easy_localization.dart';
-
+import '../data/livedata/ui_state.dart';
 import '../providers/theme_provider.dart';
 
 class HomePage extends StatefulWidget {
@@ -19,8 +20,28 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
 
 
+
+
   @override
   Widget build(BuildContext context) {
+
+    Widget loader = Container(
+      height: MediaQuery.of(context).size.height - 150,
+      width: MediaQuery.of(context).size.width,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            height:
+            MediaQuery.of(context).size.width / 2,
+            width:
+            MediaQuery.of(context).size.width / 2,
+            child: Lottie.asset('assets/loader1.json'),
+          ),
+        ],
+      ),
+    );
+
     return Container(
         height: MediaQuery.of(context).size.height,
         decoration: BoxDecoration(
@@ -88,42 +109,78 @@ class _HomePageState extends State<HomePage> {
                 /// Body: Changing status between Empty,searching and result
                 AnimatedSwitcher(
                   duration: Duration(milliseconds: 300),
-                  child: Provider.of<SearchProvider>(context, listen: true).error!=null ?ErrorPage():Provider.of<SearchProvider>(context, listen: true).response == null &&
-                          !Provider.of<SearchProvider>(context, listen: true).isSearching &&
-                      Provider.of<SearchProvider>(context, listen: true).error == null
-                      ? EmptyPage()
-                      : Provider.of<SearchProvider>(context, listen: true).isSearching
-                          ? Container(
-                              height: MediaQuery.of(context).size.height - 150,
-                              width: MediaQuery.of(context).size.width,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    height:
-                                        MediaQuery.of(context).size.width / 2,
-                                    width:
-                                        MediaQuery.of(context).size.width / 2,
-                                    child: Lottie.asset('assets/loader1.json'),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : Provider.of<SearchProvider>(context, listen: true).response != null
-                              ? ResultPage(
-                                  ip: Provider.of<SearchProvider>(context, listen: false).response!.ip,
-                                  country: Provider.of<SearchProvider>(context, listen: false).response!.country,
-                                  cc: Provider.of<SearchProvider>(context, listen: false).response!.cc,
-                                  onClear: () {
-                                    Provider.of<SearchProvider>(context, listen: false).clearSearch();
-                                  },
-                                )
-                              : SizedBox(),
+                  child:
+                  Consumer<SearchProvider>(
+                    builder: (ctx,data,_){
+                      var state = data.getIpLiveData().getValue();
+                      if(state is Initial){
+                        return EmptyPage();
+                      }else if(state is IsLoading){
+                        return loader;
+                      }
+                      else if (state is Success){
+                        var data = state.data as DataModel;
+                        return ResultPage(
+                          ip: data.ip,
+                          country: data.country,
+                          cc: data.cc,
+                          onClear: () {
+                            _searchProvider.clearSearch();
+                          },
+                        );
+                      }
+                      else if(state is Failure){
+                        return ErrorPage();
+                      }
+                      else{
+                        return Container();
+                      }
+                    },
+                  )
+
+                  // Provider.of<SearchProvider>(context, listen: true).error!=null ?ErrorPage():Provider.of<SearchProvider>(context, listen: true).response == null &&
+                  //         !Provider.of<SearchProvider>(context, listen: true).isSearching &&
+                  //     Provider.of<SearchProvider>(context, listen: true).error == null
+                  //     ? EmptyPage()
+                  //     : Provider.of<SearchProvider>(context, listen: true).isSearching
+                  //         ? Container(
+                  //             height: MediaQuery.of(context).size.height - 150,
+                  //             width: MediaQuery.of(context).size.width,
+                  //             child: Column(
+                  //               mainAxisAlignment: MainAxisAlignment.center,
+                  //               children: [
+                  //                 Container(
+                  //                   height:
+                  //                       MediaQuery.of(context).size.width / 2,
+                  //                   width:
+                  //                       MediaQuery.of(context).size.width / 2,
+                  //                   child: Lottie.asset('assets/loader1.json'),
+                  //                 ),
+                  //               ],
+                  //             ),
+                  //           )
+                  //         : Provider.of<SearchProvider>(context, listen: true).response != null
+                  //             ? ResultPage(
+                  //                 ip: Provider.of<SearchProvider>(context, listen: false).response!.ip,
+                  //                 country: Provider.of<SearchProvider>(context, listen: false).response!.country,
+                  //                 cc: Provider.of<SearchProvider>(context, listen: false).response!.cc,
+                  //                 onClear: () {
+                  //                   Provider.of<SearchProvider>(context, listen: false).clearSearch();
+                  //                 },
+                  //               )
+                  //             : SizedBox(),
                 ),
               ],
             ),
           ),
         ),
       );
+  }
+  late SearchProvider _searchProvider;
+  @override
+  void initState() {
+    super.initState();
+    _searchProvider = Provider.of<SearchProvider>(context, listen: false);
+    _searchProvider.init();
   }
 }
